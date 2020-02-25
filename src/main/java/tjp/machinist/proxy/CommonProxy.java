@@ -17,6 +17,9 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
 import scala.tools.nsc.transform.patmat.Logic;
 import tjp.machinist.Machinist;
+import tjp.machinist.blocks.blastFurnace.BlastFurnaceCasing;
+import tjp.machinist.blocks.blastFurnace.BlastFurnaceController;
+import tjp.machinist.blocks.blastFurnace.BlastFurnaceControllerTE;
 import tjp.machinist.blocks.crusher.Crusher;
 import tjp.machinist.blocks.crusher.CrusherTileEntity;
 import tjp.machinist.items.*;
@@ -52,10 +55,12 @@ public class CommonProxy {
     public static void registerBlocks(RegistryEvent.Register<Block> event) {
         event.getRegistry().registerAll(new MachineFrame(),
                                         new Smelter(),
-                                        new Crusher());
+                                        new Crusher(),
+                                        new BlastFurnaceCasing(),
+                                        new BlastFurnaceController());
         GameRegistry.registerTileEntity(SmelterTileEntity.class, new ResourceLocation(Machinist.MODID + "_smelter"));
         GameRegistry.registerTileEntity(CrusherTileEntity.class, new ResourceLocation(Machinist.MODID + "_crusher"));
-
+        GameRegistry.registerTileEntity(BlastFurnaceControllerTE.class, new ResourceLocation(Machinist.MODID + "_blastfurnace"));
     }
 
 
@@ -63,7 +68,9 @@ public class CommonProxy {
     public static void registerItems(RegistryEvent.Register<Item> event) {
         event.getRegistry().registerAll(new ItemBlock(ModBlocks.machineFrame).setRegistryName(ModBlocks.machineFrame.getRegistryName()),
                                         new ItemBlock(ModBlocks.smelter).setRegistryName(ModBlocks.smelter.getRegistryName()),
-                                        new ItemBlock(ModBlocks.crusher).setRegistryName(ModBlocks.crusher.getRegistryName()));
+                                        new ItemBlock(ModBlocks.crusher).setRegistryName(ModBlocks.crusher.getRegistryName()),
+                                        new ItemBlock(ModBlocks.blastCasing).setRegistryName(ModBlocks.blastCasing.getRegistryName()),
+                                        new ItemBlock(ModBlocks.blastController).setRegistryName(ModBlocks.blastController.getRegistryName()));
 
 
         event.getRegistry().register(new Coupler());

@@ -4,8 +4,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.energy.IEnergyStorage;
 import tjp.machinist.Machinist;
+import tjp.machinist.gui.GuiBase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +20,10 @@ public class EnergyBar {
     private int yPos;
 
 
-    private GuiContainer gc;
+    private GuiBase gc;
     private IEnergyStorage energyStorage;
 
-    public EnergyBar(GuiContainer gc, IEnergyStorage energyStorage, int xPos, int yPos) {
+    public EnergyBar(GuiBase gc, IEnergyStorage energyStorage, int xPos, int yPos) {
         this.gc = gc;
         this.energyStorage = energyStorage;
         this.xPos = xPos;
@@ -29,12 +31,15 @@ public class EnergyBar {
     }
 
 
-    public void drawBackground(double energyFraction) {
-        Minecraft.getMinecraft().renderEngine.bindTexture(energyBar);
+    public void drawBackground() {
+        gc.bindTexture(energyBar);
 
-        gc.drawTexturedModalRect(xPos, yPos, 0, 0, 6, 58);
+        gc.drawSizedTexturedModalRect(xPos, yPos, 0, 0, 6, 58, 12, 58);
 
-        gc.drawTexturedModalRect(xPos, yPos + (int)((1.0 - energyFraction) * 58), 6, (int)((1.0 - energyFraction) * 58) + 0, 6,58 - ((int)((1.0 - energyFraction) * 58)));
+        double fraction = energyStorage.getEnergyStored() / (double)energyStorage.getMaxEnergyStored();
+        fraction = MathHelper.clamp(fraction, 0.0, 1.0);
+        gc.bindTexture(energyBar);
+        gc.drawSizedTexturedModalRect(xPos, yPos + (int)((1.0 - fraction) * 58), 6, (int)((1.0 - fraction) * 58), 6,58 - ((int)((1.0 - fraction) * 58)), 12, 58);
 
     }
 

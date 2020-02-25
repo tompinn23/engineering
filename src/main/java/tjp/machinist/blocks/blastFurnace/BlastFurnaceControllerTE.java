@@ -2,11 +2,13 @@ package tjp.machinist.blocks.blastFurnace;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.Mod;
+import tjp.machinist.Machinist;
 import tjp.machinist.ModBlocks;
 import tjp.machinist.recipes.BlastFurnaceRecipes;
 
@@ -25,15 +27,10 @@ public class BlastFurnaceControllerTE extends TileEntity implements ITickable {
         BlockPos current = this.pos.down();
         if(!this.world.isRemote) {
             // Run Checks
+
             if (!completed) {
-                EnumFacing orient = EnumFacing.UP;
-                for(EnumFacing facing : EnumFacing.HORIZONTALS) {
-                    if (this.world.getBlockState(this.pos.offset(facing, 2)).getBlock() == ModBlocks.blastCasing) {
-                        orient = facing;
-                        break;
-                    }
-                }
-                if(orient == EnumFacing.UP)
+                EnumFacing orient = world.getBlockState(pos).getValue(BlastFurnaceController.FACING);
+                if(orient == EnumFacing.UP || orient == EnumFacing.DOWN)
                     return;
                 //Bottom Layer
                 if(this.world.getBlockState(current).getBlock() == ModBlocks.blastCasing) {
@@ -69,10 +66,24 @@ public class BlastFurnaceControllerTE extends TileEntity implements ITickable {
                                 return;
                         }
                 completed = true;
+                this.world.setBlockState(pos.down(), world.getBlockState(pos.down()).withProperty(BlastFurnaceCasing.FACING, orient).withProperty(BlastFurnaceCasing.BORDER, BlastFurnaceCasing.CasingBorder.MB), 2);
             }
             else {
                 //Do Processing
             }
         }
     }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound compound) {
+        super.writeToNBT(compound);
+
+        return compound;
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound compound) {
+        super.readFromNBT(compound);
+    }
+
 }

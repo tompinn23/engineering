@@ -59,7 +59,7 @@ public class SmelterTileEntity extends TileEntityPowerable implements ITickable 
 	};
 	
 	private static final int CAPACITY_BASE = 10000;
-	private static final int TRANSFER_BASE = 20;
+	private static final int TRANSFER_BASE = 100;
 	
 	public SmelterTileEntity() {
 		super(CAPACITY_BASE, TRANSFER_BASE, 0);
@@ -113,14 +113,14 @@ public class SmelterTileEntity extends TileEntityPowerable implements ITickable 
 	    			smeltItem();
 	    			cookTime = 0;
 	    		}
-	    		sendUpdates();
+
 	    	} else {
 	    		if(burnTimeRemaining > 0) {
     				useEnergy();
-    				sendUpdates();
 	    		}
 	    		cookTime = 0;
 	    	}
+			sendUpdates();
     	}
     }
 
@@ -139,12 +139,8 @@ public class SmelterTileEntity extends TileEntityPowerable implements ITickable 
 
 	
 	public double fractionOfEnergyRemaining() {
-		if(fuelStackHandler.getStackInSlot(0).getItem() == ModItems.coupler) {
-			double fraction = energyStorage.getEnergyStored() / (double)energyStorage.getMaxEnergyStored();
-			return MathHelper.clamp(fraction, 0.0, 1.0);
-		} else {
-			return 0;
-		}
+		double fraction = energyStorage.getEnergyStored() / (double)energyStorage.getMaxEnergyStored();
+		return MathHelper.clamp(fraction, 0.0, 1.0);
 	}
 
 	@Override
