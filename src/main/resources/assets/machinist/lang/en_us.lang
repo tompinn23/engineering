@@ -14,3 +14,5 @@ tile.machinist.machineframe.name=Machine Frame
 tile.machinist.crusher.name=Crusher
 
 itemGroup.tabMachinistMod=Machiniste
+message.machinist.multiblock.nocontroller=There is no Blast Furnace Controller
+message.blastfurnace.unconnected=Blast Furnace Block Unconnected.

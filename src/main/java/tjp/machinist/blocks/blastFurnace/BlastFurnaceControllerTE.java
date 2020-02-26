@@ -1,89 +1,103 @@
 package tjp.machinist.blocks.blastFurnace;
 
-import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ITickable;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.Mod;
-import tjp.machinist.Machinist;
-import tjp.machinist.ModBlocks;
+import net.minecraftforge.common.util.Constants;
+import tjp.machinist.multiblock.MultiblockControllerBase;
+import tjp.machinist.multiblock.MultiblockValidationException;
+import tjp.machinist.multiblock.rectangular.RectangularMultiblockTileEntityBase;
 import tjp.machinist.recipes.BlastFurnaceRecipes;
 
-public class BlastFurnaceControllerTE extends TileEntity implements ITickable {
-
+public class BlastFurnaceControllerTE extends RectangularMultiblockTileEntityBase {
     private BlastFurnaceRecipes recipeHandler;
 
-    private boolean completed = false;
 
-    public BlastFurnaceControllerTE() {
-        recipeHandler = BlastFurnaceRecipes.instance();
+
+    private EnumFacing facing;
+
+    public BlastFurnaceControllerTE(EnumFacing facing) {
+        super();
+        this.facing = facing;
+    }
+
+
+    public void setFacing(EnumFacing facing) {
+        this.facing = facing;
+    }
+
+    public EnumFacing getFacing(EnumFacing facing) {
+        return facing;
     }
 
     @Override
-    public void update() {
-        BlockPos current = this.pos.down();
-        if(!this.world.isRemote) {
-            // Run Checks
-
-            if (!completed) {
-                EnumFacing orient = world.getBlockState(pos).getValue(BlastFurnaceController.FACING);
-                if(orient == EnumFacing.UP || orient == EnumFacing.DOWN)
-                    return;
-                //Bottom Layer
-                if(this.world.getBlockState(current).getBlock() == ModBlocks.blastCasing) {
-                    for(int i = 0; i < 3; i++) {
-                        if(this.world.getBlockState(current.offset(orient, i).offset(orient.rotateY())).getBlock() != ModBlocks.blastCasing)
-                            return;
-                        if(this.world.getBlockState(current.offset(orient, i).offset(orient.rotateYCCW())).getBlock() != ModBlocks.blastCasing)
-                            return;
-                        if(this.world.getBlockState(current.offset(orient, i)).getBlock() != ModBlocks.blastCasing)
-                            return;
-                    }
-                }
-                else {
-                    return;
-                }
-                current = this.pos;
-                //Middle Layer
-                for(int i = 0; i < 3; i++) {
-                    if(this.world.getBlockState(current.offset(orient, i).offset(orient.rotateY())).getBlock() != ModBlocks.blastCasing)
-                        return;
-                    if(this.world.getBlockState(current.offset(orient, i).offset(orient.rotateYCCW())).getBlock() != ModBlocks.blastCasing)
-                        return;
-                }
-                if(this.world.getBlockState(current.offset(orient)).getBlock() != Blocks.AIR)
-                    return;
-                current = this.pos.up();
-                        for(int i = 0; i < 3; i++) {
-                            if(this.world.getBlockState(current.offset(orient, i).offset(orient.rotateY())).getBlock() != ModBlocks.blastCasing)
-                                return;
-                            if(this.world.getBlockState(current.offset(orient, i).offset(orient.rotateYCCW())).getBlock() != ModBlocks.blastCasing)
-                                return;
-                            if(this.world.getBlockState(current.offset(orient, i)).getBlock() != ModBlocks.blastCasing)
-                                return;
-                        }
-                completed = true;
-                this.world.setBlockState(pos.down(), world.getBlockState(pos.down()).withProperty(BlastFurnaceCasing.FACING, orient).withProperty(BlastFurnaceCasing.BORDER, BlastFurnaceCasing.CasingBorder.MB), 2);
-            }
-            else {
-                //Do Processing
-            }
-        }
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        super.writeToNBT(nbt);
+        nbt.setInteger("facing", facing.getIndex());
+        return nbt;
     }
 
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound compound) {
-        super.writeToNBT(compound);
+    public void readFromNBT(NBTTagCompound nbt) {
+        super.readFromNBT(nbt);
+        facing = EnumFacing.values()[nbt.getInteger("facing")];
+    }
 
-        return compound;
+
+    @Override
+    public void onMachineAssembled(MultiblockControllerBase multiblockControllerBase) {
+        super.onMachineAssembled(multiblockControllerBase);
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound compound) {
-        super.readFromNBT(compound);
+    public void onMachineBroken() {
+
     }
 
+    @Override
+    public void isGoodForFrame() throws MultiblockValidationException {
+        throw new MultiblockValidationException(String.format("%d %d %d - Controller not valid for frame.", pos.getX(), pos.getY(), pos.getZ()));
+    }
+
+    @Override
+    public void isGoodForSides() throws MultiblockValidationException {
+
+    }
+
+    @Override
+    public void isGoodForTop() throws MultiblockValidationException {
+        throw new MultiblockValidationException(String.format("%d %d %d - Controller not valid for top.", pos.getX(), pos.getY(), pos.getZ()));
+
+    }
+
+    @Override
+    public void isGoodForBottom() throws MultiblockValidationException {
+        throw new MultiblockValidationException(String.format("%d %d %d - Controller not valid for bottom.", pos.getX(), pos.getY(), pos.getZ()));
+
+    }
+
+    @Override
+    public void isGoodForInterior() throws MultiblockValidationException {
+        throw new MultiblockValidationException(String.format("%d %d %d - Controller not valid for interior.", pos.getX(), pos.getY(), pos.getZ()));
+
+    }
+
+    @Override
+    public void onMachineActivated() {
+        //Re render?
+    }
+
+    @Override
+    public void onMachineDeactivated() {
+        // Re render.
+    }
+
+    @Override
+    public MultiblockControllerBase createNewMultiblock() {
+        return new BlastFurnaceTE(this.world);
+    }
+
+    @Override
+    public Class<? extends MultiblockControllerBase> getMultiblockControllerType() {
+        return BlastFurnaceTE.class;
+    }
 }

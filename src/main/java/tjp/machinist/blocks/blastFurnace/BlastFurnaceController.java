@@ -1,9 +1,7 @@
 package tjp.machinist.blocks.blastFurnace;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.properties.PropertyDirection;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
@@ -23,7 +21,7 @@ import tjp.machinist.items.ModItems;
 
 import javax.annotation.Nullable;
 
-public class BlastFurnaceController extends Block implements ITileEntityProvider {
+public class BlastFurnaceController extends Block {
 
 
     public static final PropertyDirection FACING = PropertyDirection.create("facing");
@@ -58,6 +56,10 @@ public class BlastFurnaceController extends Block implements ITileEntityProvider
     @Override
     public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
         world.setBlockState(pos, state.withProperty(FACING, getFacingFromEntity(pos, placer)), 2);
+        TileEntity te = world.getTileEntity(pos);
+        if(te instanceof BlastFurnaceControllerTE) {
+            ((BlastFurnaceControllerTE)te).setFacing(placer.getHorizontalFacing().getOpposite());
+        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -66,9 +68,14 @@ public class BlastFurnaceController extends Block implements ITileEntityProvider
 
     }
 
+    @Override
+    public boolean hasTileEntity(IBlockState state) {
+        return true;
+    }
+
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(World worldIn, int meta) {
-        return new BlastFurnaceControllerTE();
+    public TileEntity createTileEntity(World worldIn, IBlockState state) {
+        return new BlastFurnaceControllerTE(state.getValue(FACING));
     }
 }

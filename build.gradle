@@ -40,7 +40,7 @@ dependencies {
     //compile "some.group:artifact:version:classifier"
     //compile "some.group:artifact:version"
     runtime fileTree(dir: 'runtime', include: ['*.jar'])
-    provided files('libs/industrialcraft-2-2.8.188-ex112-api.jar')
+    compile files('libs/industrialcraft-2-2.8.188-ex112-api.jar')
     // real examples
     //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
     //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env

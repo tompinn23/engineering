@@ -3,9 +3,8 @@ package tjp.machinist.proxy;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -15,11 +14,8 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
-import scala.tools.nsc.transform.patmat.Logic;
 import tjp.machinist.Machinist;
-import tjp.machinist.blocks.blastFurnace.BlastFurnaceCasing;
-import tjp.machinist.blocks.blastFurnace.BlastFurnaceController;
-import tjp.machinist.blocks.blastFurnace.BlastFurnaceControllerTE;
+import tjp.machinist.blocks.blastFurnace.*;
 import tjp.machinist.blocks.crusher.Crusher;
 import tjp.machinist.blocks.crusher.CrusherTileEntity;
 import tjp.machinist.items.*;
@@ -27,6 +23,7 @@ import tjp.machinist.ModBlocks;
 import tjp.machinist.blocks.MachineFrame;
 import tjp.machinist.blocks.smelter.Smelter;
 import tjp.machinist.blocks.smelter.SmelterTileEntity;
+import tjp.machinist.multiblock.MultiblockServerTickHandler;
 import tjp.machinist.recipes.RecipeHandler;
 
 @Mod.EventBusSubscriber
@@ -35,7 +32,8 @@ public class CommonProxy {
 
     }
 
-    public void init(FMLInitializationEvent e) {
+    public void Init(FMLInitializationEvent e) {
+        MinecraftForge.EVENT_BUS.register(new MultiblockServerTickHandler());
     	NetworkRegistry.INSTANCE.registerGuiHandler(Machinist.instance, new GuiProxy());
     	RecipeHandler.initSmelting();
         // OreDict
@@ -60,7 +58,9 @@ public class CommonProxy {
                                         new BlastFurnaceController());
         GameRegistry.registerTileEntity(SmelterTileEntity.class, new ResourceLocation(Machinist.MODID + "_smelter"));
         GameRegistry.registerTileEntity(CrusherTileEntity.class, new ResourceLocation(Machinist.MODID + "_crusher"));
-        GameRegistry.registerTileEntity(BlastFurnaceControllerTE.class, new ResourceLocation(Machinist.MODID + "_blastfurnace"));
+        GameRegistry.registerTileEntity(BlastFurnaceControllerTE.class, new ResourceLocation(Machinist.MODID + "_blastfurnacecontroller"));
+        GameRegistry.registerTileEntity(BlastFurnaceCasingTE.class, new ResourceLocation(Machinist.MODID + "_blastfurnacecasing"));
+
     }
 
 
