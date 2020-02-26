@@ -518,7 +518,7 @@ public abstract class MultiblockControllerBase {
 	 * @throws MultiblockValidationException if the tested block is not allowed on the machine's frame
 	 */
 	protected void isBlockGoodForFrame(World world, int x, int y, int z) throws MultiblockValidationException {
-		throw new MultiblockValidationException(String.format("%d, %d, %d - Block is not valid for use in the machine's interior", x, y, z));
+		throw new MultiblockValidationException(String.format("%d, %d, %d - Block is not valid for use in the machine's frame", x, y, z));
 	}
 
 	/**
@@ -530,7 +530,7 @@ public abstract class MultiblockControllerBase {
 	 * @throws MultiblockValidationException if the tested block is not allowed on the machine's top face
 	 */
 	protected void isBlockGoodForTop(World world, int x, int y, int z) throws MultiblockValidationException {
-		throw new MultiblockValidationException(String.format("%d, %d, %d - Block is not valid for use in the machine's interior", x, y, z));
+		throw new MultiblockValidationException(String.format("%d, %d, %d - Block is not valid for use in the machine's top", x, y, z));
 	}
 	
 	/**
@@ -542,7 +542,7 @@ public abstract class MultiblockControllerBase {
 	 * @throws MultiblockValidationException if the tested block is not allowed on the machine's bottom face
 	 */
 	protected void isBlockGoodForBottom(World world, int x, int y, int z) throws MultiblockValidationException {
-		throw new MultiblockValidationException(String.format("%d, %d, %d - Block is not valid for use in the machine's interior", x, y, z));
+		throw new MultiblockValidationException(String.format("%d, %d, %d - Block is not valid for use in the machine's bottom", x, y, z));
 	}
 	
 	/**
@@ -554,7 +554,7 @@ public abstract class MultiblockControllerBase {
 	 * @throws MultiblockValidationException if the tested block is not allowed on the machine's side faces
 	 */
 	protected void isBlockGoodForSides(World world, int x, int y, int z) throws MultiblockValidationException {
-		throw new MultiblockValidationException(String.format("%d, %d, %d - Block is not valid for use in the machine's interior", x, y, z));
+		throw new MultiblockValidationException(String.format("%d, %d, %d - Block is not valid for use in the machine's sides", x, y, z));
 	}
 	
 	/**
