@@ -1,30 +1,42 @@
 package tjp.machinist.multiblock;
 
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
+public final class MultiblockEventHandler {
 
-/**
- * In your mod, subscribe this on both the client and server sides side to handle chunk
- * load events for your multiblock machines.
- * Chunks can load asynchronously in environments like MCPC+, so we cannot
- * process any blocks that are in chunks which are still loading.
- */
-public class MultiblockEventHandler {
-	@SubscribeEvent(priority = EventPriority.NORMAL)
-	public void onChunkLoad(ChunkEvent.Load loadEvent) {
-		Chunk chunk = loadEvent.getChunk();
-		World world = loadEvent.getWorld();
-		MultiblockRegistry.onChunkLoaded(world, chunk.x, chunk.z);
-	}
+    @SubscribeEvent(priority = EventPriority.NORMAL)
+    public void onChunkLoad(final ChunkEvent.Load loadEvent) {
 
-	// Cleanup, for nice memory usageness
-	@SubscribeEvent(priority = EventPriority.NORMAL)
-	public void onWorldUnload(WorldEvent.Unload unloadWorldEvent) {
-		MultiblockRegistry.onWorldUnloaded(unloadWorldEvent.getWorld());
-	}
+        Chunk chunk = loadEvent.getChunk();
+
+        MultiblockRegistry.INSTANCE.onChunkLoaded(loadEvent.getWorld(), chunk.x, chunk.z);
+    }
+
+    @SubscribeEvent(priority = EventPriority.NORMAL)
+    public void onWorldUnload(final WorldEvent.Unload unloadWorldEvent) {
+        MultiblockRegistry.INSTANCE.onWorldUnloaded(unloadWorldEvent.getWorld());
+    }
+
+    @SubscribeEvent
+    public void onWorldTick(final TickEvent.WorldTickEvent event) {
+
+        if (TickEvent.Phase.START == event.phase)
+            MultiblockRegistry.INSTANCE.tickStart(event.world);
+    }
+
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public void onClientTick(final TickEvent.ClientTickEvent event) {
+
+        if (TickEvent.Phase.START == event.phase)
+            MultiblockRegistry.INSTANCE.tickStart(Minecraft.getMinecraft().world);
+    }
 }

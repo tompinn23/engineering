@@ -10,7 +10,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import tjp.machinist.items.ModItems;
 import tjp.machinist.ModBlocks;
-import tjp.machinist.multiblock.MultiblockClientTickHandler;
 
 @Mod.EventBusSubscriber(Side.CLIENT)
 public class ClientProxy extends CommonProxy {
@@ -21,7 +20,7 @@ public class ClientProxy extends CommonProxy {
 
     @Override
     public void Init(FMLInitializationEvent e) {
-        MinecraftForge.EVENT_BUS.register(new MultiblockClientTickHandler());
+
     }
 
     @SubscribeEvent

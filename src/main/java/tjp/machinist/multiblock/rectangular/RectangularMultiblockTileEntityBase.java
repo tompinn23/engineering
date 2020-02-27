@@ -1,107 +1,221 @@
 package tjp.machinist.multiblock.rectangular;
 
+/*
+ * A multiblock library for making irregularly-shaped multiblock machines
+ *
+ * Original author: Erogenous Beef
+ * https://github.com/erogenousbeef/BeefCore
+ *
+ * Ported to Minecraft 1.9 by ZeroNoRyouki
+ * https://github.com/ZeroNoRyouki/ZeroCore
+ */
 
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import tjp.machinist.multiblock.MultiblockControllerBase;
 import tjp.machinist.multiblock.MultiblockTileEntityBase;
-import tjp.machinist.multiblock.MultiblockValidationException;
+import tjp.machinist.multiblock.validation.IMultiblockValidator;
+import tjp.machinist.util.BlockFacings;
 
-public abstract class RectangularMultiblockTileEntityBase extends
-		MultiblockTileEntityBase {
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-	PartPosition position;
-	EnumFacing outwards;
+public abstract class RectangularMultiblockTileEntityBase extends MultiblockTileEntityBase {
+
+	private PartPosition position;
+	private BlockFacings outwardFacings;
 	
 	public RectangularMultiblockTileEntityBase() {
-		super();
 		
 		position = PartPosition.Unknown;
-		outwards = null;
+		outwardFacings = BlockFacings.NONE;
 	}
 
 	// Positional Data
-	public EnumFacing getOutwardsDir() {
-		return outwards;
+
+	/**
+	 * Get the outward facing of the part in the formed multiblock
+	 *
+	 * @return the outward facing of the part. A face is "set" in the BlockFacings object if that face is facing outward
+	 */
+	@Nonnull
+	public BlockFacings getOutwardsDir() {
+
+		return outwardFacings;
 	}
-	
+
+	/**
+	 * Get the position of the part in the formed multiblock
+	 *
+	 * @return the position of the part
+	 */
+	@Nonnull
 	public PartPosition getPartPosition() {
+
 		return position;
 	}
 
-	// Handlers from MultiblockTileEntityBase 
+	/**
+	 * Return the single direction this part is facing if the part is in one side of the multiblock
+	 *
+	 * @return the direction toward with the part is facing or null if the part is not in one side of the multiblock
+	 */
+	@Nullable
+	public EnumFacing getOutwardFacing() {
+
+		EnumFacing facing = null != this.position ? this.position.getFacing() : null;
+
+		if (null == facing) {
+
+			BlockFacings out = this.getOutwardsDir();
+
+			if (!out.none() && 1 == out.countFacesIf(true))
+				facing = out.firstIf(true);
+		}
+
+		return facing;
+	}
+
+	/**
+	 * Return the single direction this part is facing based on it's position in the multiblock
+	 *
+	 * @return the direction toward with the part is facing or null if the part is not in one side of the multiblock
+	 */
+	@Nullable
+	public EnumFacing getOutwardFacingFromWorldPosition() {
+
+		BlockFacings facings = null;
+		MultiblockControllerBase controller = this.getMultiblockController();
+
+		if (null != controller) {
+
+			BlockPos position = this.getWorldPosition();
+			BlockPos min = controller.getMinimumCoord();
+			BlockPos max = controller.getMaximumCoord();
+			int x = position.getX(), y = position.getY(), z = position.getZ();
+
+			facings = BlockFacings.from(min.getY() == y, max.getY() == y,
+										min.getZ() == z, max.getZ() == z,
+										min.getX() == x, max.getX() == x);
+		}
+
+		return null != facings && !facings.none() && 1 == facings.countFacesIf(true) ? facings.firstIf(true) : null;
+	}
+
+
+	// Handlers from MultiblockTileEntityBase
+
 	@Override
 	public void onAttached(MultiblockControllerBase newController) {
 		super.onAttached(newController);
 		recalculateOutwardsDirection(newController.getMinimumCoord(), newController.getMaximumCoord());
 	}
-	
-	
+
 	@Override
 	public void onMachineAssembled(MultiblockControllerBase controller) {
-		BlockPos maxCoord = controller.getMaximumCoord();
-		BlockPos minCoord = controller.getMinimumCoord();
-		
+
 		// Discover where I am on the reactor
-		recalculateOutwardsDirection(minCoord, maxCoord);
+		recalculateOutwardsDirection(controller.getMinimumCoord(), controller.getMaximumCoord());
 	}
 
 	@Override
 	public void onMachineBroken() {
 		position = PartPosition.Unknown;
-		outwards = null;
+		outwardFacings = BlockFacings.NONE;
 	}
 	
 	// Positional helpers
-	public void recalculateOutwardsDirection(BlockPos minCoord, BlockPos maxCoord) {
-		outwards = null;
-		position = PartPosition.Unknown;
 
+	public void recalculateOutwardsDirection(BlockPos minCoord, BlockPos maxCoord) {
+		BlockPos myPosition = this.getPos();
+		int myX = myPosition.getX();
+		int myY = myPosition.getY();
+		int myZ = myPosition.getZ();
 		int facesMatching = 0;
-		if(maxCoord.getX() == this.pos.getX() || minCoord.getX() == this.pos.getX()) { facesMatching++; }
-		if(maxCoord.getY() == this.pos.getY() || minCoord.getY() == this.pos.getY()) { facesMatching++; }
-		if(maxCoord.getZ() == this.pos.getZ() || minCoord.getZ() == this.pos.getZ()) { facesMatching++; }
-		
-		if(facesMatching <= 0) { position = PartPosition.Interior; }
-		else if(facesMatching >= 3) { position = PartPosition.FrameCorner; }
-		else if(facesMatching == 2) { position = PartPosition.Frame; }
-		else {
-			// 1 face matches
-			if(maxCoord.getX() == this.pos.getX()) {
-				position = PartPosition.EastFace;
-				outwards = EnumFacing.EAST;
-			}
-			else if(minCoord.getX() == this.pos.getX()) {
-				position = PartPosition.WestFace;
-				outwards = EnumFacing.WEST;
-			}
-			else if(maxCoord.getZ() == this.pos.getZ()) {
-				position = PartPosition.SouthFace;
-				outwards = EnumFacing.SOUTH;
-			}
-			else if(minCoord.getZ() == this.pos.getZ()) {
-				position = PartPosition.NorthFace;
-				outwards = EnumFacing.NORTH;
-			}
-			else if(maxCoord.getY() == this.pos.getY()) {
-				position = PartPosition.TopFace;
-				outwards = EnumFacing.UP;
-			}
-			else {
-				position = PartPosition.BottomFace;
-				outwards = EnumFacing.DOWN;
+
+
+		// witch direction are we facing?
+
+		boolean downFacing = myY == minCoord.getY();
+		boolean upFacing = myY == maxCoord.getY();
+		boolean northFacing = myZ == minCoord.getZ();
+		boolean southFacing = myZ == maxCoord.getZ();
+		boolean westFacing = myX == minCoord.getX();
+		boolean eastFacing = myX == maxCoord.getX();
+
+		this.outwardFacings = BlockFacings.from(downFacing, upFacing, northFacing, southFacing, westFacing, eastFacing);
+
+
+		// how many faces are facing outward?
+
+		if (eastFacing || westFacing)
+			++facesMatching;
+
+		if (upFacing || downFacing)
+			++facesMatching;
+
+		if (southFacing || northFacing)
+			++facesMatching;
+
+
+		// what is our position in the multiblock structure?
+
+		if (facesMatching <= 0)
+			this.position = PartPosition.Interior;
+
+		else if (facesMatching >= 3)
+			this.position = PartPosition.FrameCorner;
+
+		else if (facesMatching == 2) {
+
+			if (!eastFacing && !westFacing)
+				this.position = PartPosition.FrameEastWest;
+			else if (!southFacing && !northFacing)
+				this.position = PartPosition.FrameSouthNorth;
+			else
+				this.position = PartPosition.FrameUpDown;
+
+		} else {
+
+			// only 1 face matches
+
+			if (eastFacing) {
+
+				this.position = PartPosition.EastFace;
+
+			} else if (westFacing) {
+
+				this.position = PartPosition.WestFace;
+
+			} else if (southFacing) {
+
+				this.position = PartPosition.SouthFace;
+
+			} else if (northFacing) {
+
+				this.position = PartPosition.NorthFace;
+
+			} else if (upFacing) {
+
+				this.position = PartPosition.TopFace;
+
+			} else {
+
+				this.position = PartPosition.BottomFace;
 			}
 		}
 	}
 	
 	///// Validation Helpers (IMultiblockPart)
-	public abstract void isGoodForFrame() throws MultiblockValidationException;
 
-	public abstract void isGoodForSides() throws MultiblockValidationException;
+	public abstract boolean isGoodForFrame(IMultiblockValidator validatorCallback);
 
-	public abstract void isGoodForTop() throws MultiblockValidationException;
+	public abstract boolean isGoodForSides(IMultiblockValidator validatorCallback);
 
-	public abstract void isGoodForBottom() throws MultiblockValidationException;
+	public abstract boolean isGoodForTop(IMultiblockValidator validatorCallback);
 
-	public abstract void isGoodForInterior() throws MultiblockValidationException;
+	public abstract boolean isGoodForBottom(IMultiblockValidator validatorCallback);
+
+	public abstract boolean isGoodForInterior(IMultiblockValidator validatorCallback);
 }

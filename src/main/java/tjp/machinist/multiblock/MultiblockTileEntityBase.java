@@ -1,23 +1,33 @@
 package tjp.machinist.multiblock;
 
+/*
+ * A multiblock library for making irregularly-shaped multiblock machines
+ *
+ * Original author: Erogenous Beef
+ * https://github.com/erogenousbeef/BeefCore
+ *
+ * Ported to Minecraft 1.9 by ZeroNoRyouki
+ * https://github.com/ZeroNoRyouki/ZeroCore
+ */
+
+
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fml.common.FMLLog;
+import tjp.machinist.Machinist;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.network.play.server.SPacketUpdateTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.IChunkProvider;
-import tjp.machinist.Machinist;
-
 /**
  * Base logic class for Multiblock-connected tile entities. Most multiblock machines
  * should derive from this and implement their game logic in certain abstract methods.
  */
-public abstract class MultiblockTileEntityBase extends IMultiblockPart {
+public abstract class MultiblockTileEntityBase extends TileEntity implements IMultiblockPart {
 	private MultiblockControllerBase controller;
 	private boolean visited;
 	
@@ -75,24 +85,26 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 	@Override
 	public void assertDetached() {
 		if(this.controller != null) {
-			Machinist.logger.info("[assert] Part @ (%d, %d, %d) should be detached already, but detected that it was not. This is not a fatal error, and will be repaired, but is unusual.", pos);
+			BlockPos coord = this.getWorldPosition();
+
+			FMLLog.info("[assert] Part @ (%d, %d, %d) should be detached already, but detected that it was not. This is not a fatal error, and will be repaired, but is unusual.",
+					coord.getX(), coord.getY(), coord.getZ());
 			this.controller = null;
 		}
 	}
-	
-	///// Overrides from base TileEntity methods
-	
+
+
 	@Override
 	public void readFromNBT(NBTTagCompound data) {
 		super.readFromNBT(data);
-		
+
 		// We can't directly initialize a multiblock controller yet, so we cache the data here until
 		// we receive a validate() call, which creates the controller and hands off the cached data.
 		if(data.hasKey("multiblockData")) {
 			this.cachedMultiblockData = data.getCompoundTag("multiblockData");
 		}
 	}
-	
+
 	@Override
 	public NBTTagCompound writeToNBT(NBTTagCompound data) {
 		super.writeToNBT(data);
@@ -104,14 +116,7 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 		}
 		return data;
 	}
-		
-	/**
-	 * Generally, TileEntities that are part of a multiblock should not subscribe to updates
-	 * from the main game loop. Instead, you should have lists of TileEntities which need to
-	 * be notified during an update() in your Controller and perform callbacks from there.
-	 * @see net.minecraft.tileentity.TileEntity#canUpdate()
-	 */
-	
+
 	/**
 	 * Called when a block is removed by game actions, such as a player breaking the block
 	 * or the block being changed into another block.
@@ -137,7 +142,7 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 
 	/**
 	 * This is called when a block is being marked as valid by the chunk, but has not yet fully
-	 * been placed into the world's TileEntity cache. this.worldObj, xCoord, yCoord and zCoord have
+	 * been placed into the world's TileEntity cache. this.WORLD, xCoord, yCoord and zCoord have
 	 * been initialized, but any attempts to read data about the world can cause infinite loops -
 	 * if you call getTileEntity on this TileEntity's coordinate from within validate(), you will
 	 * blow your call stack.
@@ -148,57 +153,7 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 	@Override
 	public void validate() {
 		super.validate();
-		if(world.isRemote) {
-			MultiblockRegistry.onPartAdded(this.world, this);
-		}
-	}
-
-	// Network Communication
-	@Override
-	public SPacketUpdateTileEntity getUpdatePacket() {
-		NBTTagCompound packetData = new NBTTagCompound();
-		encodeDescriptionPacket(packetData);
-		return new SPacketUpdateTileEntity(pos, 0, packetData);
-	}
-	
-	@Override
-	public void onDataPacket(NetworkManager network, SPacketUpdateTileEntity packet) {
-		decodeDescriptionPacket(packet.getNbtCompound());
-	}
-	
-	///// Things to override in most implementations (IMultiblockPart)
-	/**
-	 * Override this to easily modify the description packet's data without having
-	 * to worry about sending the packet itself.
-	 * Decode this data in decodeDescriptionPacket.
-	 * @param packetData An NBT compound tag into which you should write your custom description data.
-	 *
-	 */
-	protected void encodeDescriptionPacket(NBTTagCompound packetData) {
-		if(this.isMultiblockSaveDelegate() && isConnected()) {
-			NBTTagCompound tag = new NBTTagCompound();
-			getMultiblockController().formatDescriptionPacket(tag);
-			packetData.setTag("multiblockData", tag);
-		}
-	}
-	
-	/**
-	 * Override this to easily read in data from a TileEntity's description packet.
-	 * Encoded in encodeDescriptionPacket.
-	 * @param packetData The NBT data from the tile entity's description packet.
-	 *
-	 */
-	protected void decodeDescriptionPacket(NBTTagCompound packetData) {
-		if(packetData.hasKey("multiblockData")) {
-			NBTTagCompound tag = packetData.getCompoundTag("multiblockData");
-			if(isConnected()) {
-				getMultiblockController().decodeDescriptionPacket(tag);
-			}
-			else {
-				// This part hasn't been added to a machine yet, so cache the data.
-				this.cachedMultiblockData = tag;
-			}
-		}
+        REGISTRY.onPartAdded(this.world, this);
 	}
 
 	@Override
@@ -216,8 +171,6 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 		this.cachedMultiblockData = null;
 	}
 
-	///// Game logic callbacks (IMultiblockPart)
-	
 	@Override
 	public abstract void onMachineAssembled(MultiblockControllerBase multiblockControllerBase);
 
@@ -230,8 +183,6 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 	@Override
 	public abstract void onMachineDeactivated();
 
-	///// Miscellaneous multiblock-assembly callbacks and support methods (IMultiblockPart)
-	
 	@Override
 	public boolean isConnected() {
 		return (controller != null);
@@ -242,11 +193,6 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 		return controller;
 	}
 
-	@Override
-	public BlockPos getWorldLocation() {
-		return pos;
-	}
-	
 	@Override
 	public void becomeMultiblockSaveDelegate() {
 		this.saveMultiblockData = true;
@@ -296,48 +242,50 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 	
 	@Override
 	public IMultiblockPart[] getNeighboringParts() {
-		BlockPos[] neighbors = new BlockPos[] {
-			pos.down(),
-				pos.up(),
-				pos.north(),
-				pos.east(),
-				pos.south(),
-				pos.west()
-		};
 
 		TileEntity te;
 		List<IMultiblockPart> neighborParts = new ArrayList<IMultiblockPart>();
-		IChunkProvider chunkProvider = world.getChunkProvider();
-		for(BlockPos neighbor : neighbors) {
-			if(!world.getChunkFromBlockCoords(neighbor).isLoaded()) {
-				// Chunk not loaded, skip it.
-				continue;
-			}
+		BlockPos neighborPosition, partPosition = this.getWorldPosition();
 
-			te = this.world.getTileEntity(neighbor);
-			if(te instanceof IMultiblockPart) {
+		for (EnumFacing facing : EnumFacing.VALUES) {
+
+			neighborPosition = partPosition.offset(facing);
+			te = this.world.getTileEntity(neighborPosition);
+
+			if (te instanceof IMultiblockPart)
 				neighborParts.add((IMultiblockPart)te);
-			}
 		}
-		IMultiblockPart[] tmp = new IMultiblockPart[neighborParts.size()];
-		return neighborParts.toArray(tmp);
+
+		return neighborParts.toArray(new IMultiblockPart[neighborParts.size()]);
 	}
 	
 	@Override
 	public void onOrphaned(MultiblockControllerBase controller, int oldSize, int newSize) {
 		this.markDirty();
-		world.markChunkDirty(pos, this);
-	}
-	
-	//// Helper functions for notifying neighboring blocks
-	protected void notifyNeighborsOfBlockChange() {
-		world.notifyNeighborsOfStateChange(pos, getBlockType(), true);
-	}
-	
-	protected void notifyNeighborsOfTileChange() {
-		world.notifyNeighborsOfStateChange(pos, getBlockType(), true);
+		world.markChunkDirty(this.getWorldPosition(), this);
 	}
 
+	@Override
+	public BlockPos getWorldPosition() {
+		return this.pos;
+	}
+
+	@Override
+	public boolean isPartInvalid() {
+		return this.isInvalid();
+	}
+
+	//// Helper functions for notifying neighboring blocks
+	protected void notifyNeighborsOfBlockChange() {
+		world.notifyNeighborsOfStateChange(this.getWorldPosition(), this.getBlockType(), true);
+	}
+
+	@Deprecated // not implemented yet
+	protected void notifyNeighborsOfTileChange() {
+		//WORLD.func_147453_f(xCoord, yCoord, zCoord, getBlockType());
+
+	}
+	
 	///// Private/Protected Logic Helpers
 	/*
 	 * Detaches this block from its controller. Calls detachBlock() and clears the controller member.
@@ -352,6 +300,24 @@ public abstract class MultiblockTileEntityBase extends IMultiblockPart {
 		}
 
 		// Clean part out of lists in the registry
-		MultiblockRegistry.onPartRemovedFromWorld(world, this);
+        REGISTRY.onPartRemovedFromWorld(world, this);
 	}
+
+	/**
+	 * IF the part is connected to a multiblock controller, marks the whole multiblock for a render update on the client.
+	 * On the server, this does nothing
+	 */
+	protected void markMultiblockForRenderUpdate() {
+
+		MultiblockControllerBase controller = this.getMultiblockController();
+
+		if (null != controller)
+			controller.markMultiblockForRenderUpdate();
+	}
+
+    private static final IMultiblockRegistry REGISTRY;
+
+    static {
+        REGISTRY = Machinist.proxy.initMultiblockRegistry();
+    }
 }

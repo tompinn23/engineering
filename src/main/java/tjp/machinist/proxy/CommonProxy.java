@@ -23,17 +23,21 @@ import tjp.machinist.ModBlocks;
 import tjp.machinist.blocks.MachineFrame;
 import tjp.machinist.blocks.smelter.Smelter;
 import tjp.machinist.blocks.smelter.SmelterTileEntity;
-import tjp.machinist.multiblock.MultiblockServerTickHandler;
+import tjp.machinist.multiblock.IMultiblockRegistry;
+import tjp.machinist.multiblock.MultiblockEventHandler;
+import tjp.machinist.multiblock.MultiblockRegistry;
 import tjp.machinist.recipes.RecipeHandler;
 
 @Mod.EventBusSubscriber
 public class CommonProxy {
+
+    private static MultiblockEventHandler s_multiblockHandler = null;
+
     public void preInit(FMLPreInitializationEvent e) {
 
     }
 
     public void Init(FMLInitializationEvent e) {
-        MinecraftForge.EVENT_BUS.register(new MultiblockServerTickHandler());
     	NetworkRegistry.INSTANCE.registerGuiHandler(Machinist.instance, new GuiProxy());
     	RecipeHandler.initSmelting();
         // OreDict
@@ -47,6 +51,11 @@ public class CommonProxy {
 
     }
 
+    public IMultiblockRegistry initMultiblockRegistry() {
+        if(null == s_multiblockHandler)
+            MinecraftForge.EVENT_BUS.register(s_multiblockHandler = new MultiblockEventHandler());
+        return MultiblockRegistry.INSTANCE;
+    }
 
 
     @SubscribeEvent

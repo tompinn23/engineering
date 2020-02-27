@@ -12,6 +12,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.relauncher.Side;
@@ -38,6 +39,12 @@ public class BlastFurnaceController extends Block {
     @Override
     public int getMetaFromState(IBlockState state) {
         return state.getValue(FACING).getIndex();
+    }
+
+    public IBlockState getActualState(IBlockState state, IBlockAccess worldIn, BlockPos pos)
+    {
+        TileEntity te = worldIn.getTileEntity(pos);
+        return state.withProperty(FACING, ((BlastFurnaceControllerTE)te).getFacing());
     }
 
 

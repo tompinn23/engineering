@@ -1,19 +1,32 @@
 package tjp.machinist.blocks.blastFurnace;
 
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraftforge.common.util.Constants;
-import tjp.machinist.multiblock.MultiblockControllerBase;
-import tjp.machinist.multiblock.MultiblockValidationException;
-import tjp.machinist.multiblock.rectangular.RectangularMultiblockTileEntityBase;
-import tjp.machinist.recipes.BlastFurnaceRecipes;
 
-public class BlastFurnaceControllerTE extends RectangularMultiblockTileEntityBase {
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import tjp.machinist.Machinist;
+import tjp.machinist.multiblock2.MultiblockBaseController;
+import tjp.machinist.multiblock2.MultiblockBaseTileEntity;
+import tjp.machinist.recipes.BlastFurnaceRecipes;
+import tjp.machinist.util.WorldHelpers;
+
+public class BlastFurnaceControllerTE extends MultiblockBaseController {
     private BlastFurnaceRecipes recipeHandler;
+
+    private static final int MACHINE_SZ = 3;
 
 
 
     private EnumFacing facing;
+
+    public BlastFurnaceControllerTE() {
+        super();
+        this.facing = EnumFacing.NORTH;
+    }
 
     public BlastFurnaceControllerTE(EnumFacing facing) {
         super();
@@ -25,7 +38,7 @@ public class BlastFurnaceControllerTE extends RectangularMultiblockTileEntityBas
         this.facing = facing;
     }
 
-    public EnumFacing getFacing(EnumFacing facing) {
+    public EnumFacing getFacing() {
         return facing;
     }
 
@@ -42,62 +55,46 @@ public class BlastFurnaceControllerTE extends RectangularMultiblockTileEntityBas
         facing = EnumFacing.values()[nbt.getInteger("facing")];
     }
 
-
     @Override
-    public void onMachineAssembled(MultiblockControllerBase multiblockControllerBase) {
-        super.onMachineAssembled(multiblockControllerBase);
+    public void checkPattern() {
+        EnumFacing machineDirection = getFacing().getOpposite();
+        BlockPos topRight = pos.up().offset(machineDirection.rotateY());
+        BlockPos bottomLeft = pos.down().offset(machineDirection.rotateYCCW()).offset(machineDirection,2);
+        BlockPos min = WorldHelpers.getMinCoord(topRight, bottomLeft);
+        BlockPos max = WorldHelpers.getMaxCoord(topRight, bottomLeft);
+
+        BlockPos airPos = pos.offset(machineDirection);
+
+        if(world.getBlockState(airPos).getBlock() != Blocks.AIR) {
+            return;
+        }
+
+        for(BlockPos curPos : BlockPos.getAllInBox(min, max)) {
+            TileEntity te = null;
+            if(curPos == pos)
+                continue;
+            if(curPos == airPos)
+                continue;
+            if((te = world.getTileEntity(curPos)) == null) {
+                return;
+            }
+            if(te instanceof MultiblockBaseTileEntity) {
+                if(((MultiblockBaseTileEntity)te).getMultiblockControllerType() == this.getClass()) {
+                    continue;
+                }
+            }
+            else {
+                return;
+            }
+        }
+        formed = true;
     }
 
-    @Override
-    public void onMachineBroken() {
 
-    }
+
 
     @Override
-    public void isGoodForFrame() throws MultiblockValidationException {
-        throw new MultiblockValidationException(String.format("%d %d %d - Controller not valid for frame.", pos.getX(), pos.getY(), pos.getZ()));
-    }
-
-    @Override
-    public void isGoodForSides() throws MultiblockValidationException {
-
-    }
-
-    @Override
-    public void isGoodForTop() throws MultiblockValidationException {
-        throw new MultiblockValidationException(String.format("%d %d %d - Controller not valid for top.", pos.getX(), pos.getY(), pos.getZ()));
-
-    }
-
-    @Override
-    public void isGoodForBottom() throws MultiblockValidationException {
-        throw new MultiblockValidationException(String.format("%d %d %d - Controller not valid for bottom.", pos.getX(), pos.getY(), pos.getZ()));
-
-    }
-
-    @Override
-    public void isGoodForInterior() throws MultiblockValidationException {
-        throw new MultiblockValidationException(String.format("%d %d %d - Controller not valid for interior.", pos.getX(), pos.getY(), pos.getZ()));
-
-    }
-
-    @Override
-    public void onMachineActivated() {
-        //Re render?
-    }
-
-    @Override
-    public void onMachineDeactivated() {
-        // Re render.
-    }
-
-    @Override
-    public MultiblockControllerBase createNewMultiblock() {
-        return new BlastFurnaceTE(this.world);
-    }
-
-    @Override
-    public Class<? extends MultiblockControllerBase> getMultiblockControllerType() {
-        return BlastFurnaceTE.class;
+    public Class<? extends MultiblockBaseController> getMultiblockControllerType() {
+        return BlastFurnaceControllerTE.class;
     }
 }

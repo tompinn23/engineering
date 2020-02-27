@@ -1,13 +1,24 @@
 package tjp.machinist.multiblock.rectangular;
 
+/*
+ * A multiblock library for making irregularly-shaped multiblock machines
+ *
+ * Original author: Erogenous Beef
+ * https://github.com/erogenousbeef/BeefCore
+ *
+ * Ported to Minecraft 1.9 by ZeroNoRyouki
+ * https://github.com/ZeroNoRyouki/ZeroCore
+ */
+
+
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import tjp.machinist.multiblock.MultiblockControllerBase;
-import tjp.machinist.multiblock.MultiblockValidationException;
+import tjp.machinist.multiblock.validation.IMultiblockValidator;
+import tjp.machinist.multiblock.validation.ValidationError;
 
-public abstract class RectangularMultiblockControllerBase extends
-		MultiblockControllerBase {
+public abstract class RectangularMultiblockControllerBase extends MultiblockControllerBase {
 
 	protected RectangularMultiblockControllerBase(World world) {
 		super(world);
@@ -16,52 +27,65 @@ public abstract class RectangularMultiblockControllerBase extends
 	/**
 	 * @return True if the machine is "whole" and should be assembled. False otherwise.
 	 */
-	protected void isMachineWhole() throws MultiblockValidationException {
+	@Override
+	protected boolean isMachineWhole(IMultiblockValidator validatorCallback) {
+
 		if(connectedParts.size() < getMinimumNumberOfBlocksForAssembledMachine()) {
-			throw new MultiblockValidationException("Machine is too small.");
+			validatorCallback.setLastError(ValidationError.VALIDATION_ERROR_TOO_FEW_PARTS);
+			return false;
 		}
 		
-		BlockPos maximumCoord = getMaximumCoord();
-		BlockPos minimumCoord = getMinimumCoord();
+		BlockPos maximumCoord = this.getMaximumCoord();
+		BlockPos minimumCoord = this.getMinimumCoord();
+
+		int minX = minimumCoord.getX();
+		int minY = minimumCoord.getY();
+		int minZ = minimumCoord.getZ();
+		int maxX = maximumCoord.getX();
+		int maxY = maximumCoord.getY();
+		int maxZ = maximumCoord.getZ();
 		
 		// Quickly check for exceeded dimensions
-		int deltaX = maximumCoord.getX() - minimumCoord.getX() + 1;
-		int deltaY = maximumCoord.getY() - minimumCoord.getY() + 1;
-		int deltaZ = maximumCoord.getZ() - minimumCoord.getZ() + 1;
+		int deltaX = maxX - minX + 1;
+		int deltaY = maxY - minY + 1;
+		int deltaZ = maxZ - minZ + 1;
 		
-		int maxX = getMaximumXSize();
-		int maxY = getMaximumYSize();
-		int maxZ = getMaximumZSize();
-		int minX = getMinimumXSize();
-		int minY = getMinimumYSize();
-		int minZ = getMinimumZSize();
+		int maxXSize = this.getMaximumXSize();
+		int maxYSize = this.getMaximumYSize();
+		int maxZSize = this.getMaximumZSize();
+		int minXSize = this.getMinimumXSize();
+		int minYSize = this.getMinimumYSize();
+		int minZSize = this.getMinimumZSize();
 		
-		if(maxX > 0 && deltaX > maxX) { throw new MultiblockValidationException(String.format("Machine is too large, it may be at most %d blocks in the X dimension", maxX)); }
-		if(maxY > 0 && deltaY > maxY) { throw new MultiblockValidationException(String.format("Machine is too large, it may be at most %d blocks in the Y dimension", maxY)); }
-		if(maxZ > 0 && deltaZ > maxZ) { throw new MultiblockValidationException(String.format("Machine is too large, it may be at most %d blocks in the Z dimension", maxZ)); }
-		if(deltaX < minX) { throw new MultiblockValidationException(String.format("Machine is too small, it must be at least %d blocks in the X dimension", minX)); }
-		if(deltaY < minY) { throw new MultiblockValidationException(String.format("Machine is too small, it must be at least %d blocks in the Y dimension", minY)); }
-		if(deltaZ < minZ) { throw new MultiblockValidationException(String.format("Machine is too small, it must be at least %d blocks in the Z dimension", minZ)); }
+		if (maxXSize > 0 && deltaX > maxXSize) { validatorCallback.setLastError("zerocore:api.multiblock.validation.machine_too_large", maxXSize, "X"); return false; }
+		if (maxYSize > 0 && deltaY > maxYSize) { validatorCallback.setLastError("zerocore:api.multiblock.validation.machine_too_large", maxYSize, "Y"); return false; }
+		if (maxZSize > 0 && deltaZ > maxZSize) { validatorCallback.setLastError("zerocore:api.multiblock.validation.machine_too_large", maxZSize, "Z"); return false; }
+		if (deltaX < minXSize) { validatorCallback.setLastError("zerocore:zerocore:api.multiblock.validation.machine_too_small", minXSize, "X"); return false; }
+		if (deltaY < minYSize) { validatorCallback.setLastError("zerocore:zerocore:api.multiblock.validation.machine_too_small", minYSize, "Y"); return false; }
+		if (deltaZ < minZSize) { validatorCallback.setLastError("zerocore:zerocore:api.multiblock.validation.machine_too_small", minZSize, "Z"); return false; }
 
 		// Now we run a simple check on each block within that volume.
 		// Any block deviating = NO DEAL SIR
 		TileEntity te;
 		RectangularMultiblockTileEntityBase part;
 		Class<? extends RectangularMultiblockControllerBase> myClass = this.getClass();
+		int extremes;
+		boolean isPartValid;
 
-		for(int x = minimumCoord.getX(); x <= maximumCoord.getX(); x++) {
-			for(int y = minimumCoord.getY(); y <= maximumCoord.getY(); y++) {
-				for(int z = minimumCoord.getZ(); z <= maximumCoord.getZ(); z++) {
+		for(int x = minX; x <= maxX; x++) {
+			for(int y = minY; y <= maxY; y++) {
+				for(int z = minZ; z <= maxZ; z++) {
 					// Okay, figure out what sort of block this should be.
 					
-					te = this.worldObj.getTileEntity(new BlockPos(x, y, z));
+					te = this.WORLD.getTileEntity(new BlockPos(x, y, z));
 					if(te instanceof RectangularMultiblockTileEntityBase) {
 						part = (RectangularMultiblockTileEntityBase)te;
 						
 						// Ensure this part should actually be allowed within a cube of this controller's type
-						if(!myClass.equals(part.getMultiblockControllerType()))
-						{
-							throw new MultiblockValidationException(String.format("Part @ %d, %d, %d is incompatible with machines of type %s", x, y, z, myClass.getSimpleName()));
+						if(!myClass.equals(part.getMultiblockControllerType())) {
+
+							validatorCallback.setLastError("zerocore:api.multiblock.validation.invalid_part", x, y, z);
+							return false;
 						}
 					}
 					else {
@@ -70,61 +94,83 @@ public abstract class RectangularMultiblockControllerBase extends
 					}
 					
 					// Validate block type against both part-level and material-level validators.
-					int extremes = 0;
-					if(x == minimumCoord.getX()) { extremes++; }
-					if(y == minimumCoord.getY()) { extremes++; }
-					if(z == minimumCoord.getZ()) { extremes++; }
+					extremes = 0;
 
-					if(x == maximumCoord.getX()) { extremes++; }
-					if(y == maximumCoord.getY()) { extremes++; }
-					if(z == maximumCoord.getZ()) { extremes++; }
+					if(x == minX) { extremes++; }
+					if(y == minY) { extremes++; }
+					if(z == minZ) { extremes++; }
 					
+					if(x == maxX) { extremes++; }
+					if(y == maxY) { extremes++; }
+					if(z == maxZ) { extremes++; }
+
 					if(extremes >= 2) {
-						if(part != null) {
-							part.isGoodForFrame();
-						}
-						else {
-							isBlockGoodForFrame(this.worldObj, x, y, z);
+
+						isPartValid = part != null ? part.isGoodForFrame(validatorCallback) : this.isBlockGoodForFrame(this.WORLD, x, y, z, validatorCallback);
+
+						if (!isPartValid) {
+
+							if (null == validatorCallback.getLastError())
+								validatorCallback.setLastError("zerocore:api.multiblock.validation.invalid_part_for_frame", x, y, z);
+
+							return false;
 						}
 					}
 					else if(extremes == 1) {
-						if(y == maximumCoord.getY()) {
-							if(part != null) {
-								part.isGoodForTop();
-							}
-							else {
-								isBlockGoodForTop(this.worldObj, x, y, z);
+						if(y == maxY) {
+
+							isPartValid = part != null ? part.isGoodForTop(validatorCallback) : this.isBlockGoodForTop(this.WORLD, x, y, z, validatorCallback);
+
+							if (!isPartValid) {
+
+								if (null == validatorCallback.getLastError())
+									validatorCallback.setLastError("zerocore:api.multiblock.validation.invalid_part_for_top", x, y, z);
+
+								return false;
 							}
 						}
-						else if(y == minimumCoord.getY()) {
-							if(part != null) {
-								part.isGoodForBottom();
-							}
-							else {
-								isBlockGoodForBottom(this.worldObj, x, y, z);
+						else if(y == minY) {
+
+							isPartValid = part != null ? part.isGoodForBottom(validatorCallback) : this.isBlockGoodForBottom(this.WORLD, x, y, z, validatorCallback);
+
+							if (!isPartValid) {
+
+								if (null == validatorCallback.getLastError())
+									validatorCallback.setLastError("zerocore:api.multiblock.validation.invalid_part_for_bottom", x, y, z);
+
+								return false;
 							}
 						}
 						else {
 							// Side
-							if(part != null) {
-								part.isGoodForSides();
-							}
-							else {
-								isBlockGoodForSides(this.worldObj, x, y, z);
+							isPartValid = part != null ? part.isGoodForSides(validatorCallback) : this.isBlockGoodForSides(this.WORLD, x, y, z, validatorCallback);
+
+							if (!isPartValid) {
+
+								if (null == validatorCallback.getLastError())
+									validatorCallback.setLastError("zerocore:api.multiblock.validation.invalid_part_for_sides", x, y, z);
+
+								return false;
 							}
 						}
 					}
 					else {
-						if(part != null) {
-							part.isGoodForInterior();
-						}
-						else {
-							isBlockGoodForInterior(this.worldObj, x, y, z);
+
+						isPartValid = part != null ? part.isGoodForInterior(validatorCallback) : this.isBlockGoodForInterior(this.WORLD, x, y, z, validatorCallback);
+
+						if (!isPartValid) {
+
+							if (null == validatorCallback.getLastError())
+								validatorCallback.setLastError("zerocore:api.multiblock.validation.reactor.invalid_part_for_interior", x, y, z);
+
+							return false;
 						}
 					}
 				}
 			}
 		}
+
+		return true;
 	}	
 	
 }

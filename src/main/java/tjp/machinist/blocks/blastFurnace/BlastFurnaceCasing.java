@@ -25,6 +25,7 @@ import tjp.machinist.Machinist;
 import tjp.machinist.items.ModItems;
 import tjp.machinist.multiblock.IMultiblockPart;
 import tjp.machinist.multiblock.MultiblockControllerBase;
+import tjp.machinist.multiblock.validation.ValidationError;
 
 public class BlastFurnaceCasing extends Block {
 /*
@@ -90,7 +91,7 @@ public class BlastFurnaceCasing extends Block {
 
     @Override
     public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        if(worldIn.isRemote) {
+        if (worldIn.isRemote) {
             if (playerIn.isSneaking()) {
                 return false;
             }
@@ -101,18 +102,15 @@ public class BlastFurnaceCasing extends Block {
                 part = (IMultiblockPart) te;
                 controller = part.getMultiblockController();
             }
-            if (playerIn.getActiveItemStack() == ItemStack.EMPTY) {
+            if (playerIn.getActiveItemStack().isEmpty()) {
                 if (controller != null) {
-                    Exception e = controller.getLastValidationException();
-                    if (e != null) {
-                        playerIn.sendStatusMessage(new TextComponentString(e.getMessage()), false);
+                    ValidationError status = controller.getLastError();
+                    if (null != status) {
+                        playerIn.sendStatusMessage(status.getChatMessage(), false);
                         return true;
                     }
-                } else {
-                    playerIn.sendStatusMessage(new TextComponentTranslation("message.blastfurnace.unconnected"), false);
-                    return true;
                 }
-
+                return false;
             }
             return false;
         }
